@@ -81,6 +81,8 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using HtmlAgilityPack;
+using System.Diagnostics;
 
 namespace HyuuSeeker
 {
@@ -225,6 +227,10 @@ namespace HyuuSeeker
 
         static void Main(string[] args)
         {
+            string hostname = "";
+            int intchoice;
+            int port = 0;
+
             if (!File.Exists("maps.kart")) {
                 Console.WriteLine("Close this program and move it to your SRB2Kart folder. Then try again.");
                 Console.ReadKey();
@@ -258,7 +264,31 @@ namespace HyuuSeeker
             Console.WriteLine("\"like wadseeker but written by chimpanzees\"");
             Console.WriteLine("");
 
-            Console.WriteLine("Enter a hostname to fetch files for, or leave blank to read your log.txt.");
+            List<string> servers = new List<string>();
+            HtmlWeb web = new HtmlWeb();  
+            HtmlDocument document = web.Load("http://hyuu.cc");
+            HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='hyuuseeker-enabled']/li");
+
+            Console.WriteLine("Choose a hyuuseeker supported server to play on!\n");
+
+            int listnumber = 1;
+            foreach (HtmlNode node in nodes)
+            {
+                HtmlNode linknode = node.SelectSingleNode("a");
+                HtmlNode descnode = node.SelectSingleNode("div[@class='desc']");
+                servers.Add(linknode.Attributes.First().Value);
+
+
+                Console.WriteLine(listnumber + " : " + linknode.InnerText);
+                if (descnode != null)
+                {
+                    Console.WriteLine("\t" + descnode.InnerText);
+                }
+                Console.WriteLine("");
+                listnumber++;
+            }
+
+            Console.WriteLine("Enter a number to select a HyuuSeeker supported server.\nOr, you can type an unsupported hostname directly and HyuuSeeker will try its best.\nYou can also enter nothing and HyuuSeeker will scan your log for previous connections.");
             string target = Console.ReadLine();
 
             List<string> targets = new List<string>();
@@ -283,16 +313,35 @@ namespace HyuuSeeker
                         }
                     }
                 }
-            } else
+            } 
+            else
             {
-                string hostname = target;
-                int port = 5029;
-                string[] parts = hostname.Split(':');
-                if (parts.Length == 2)
+                if (Int32.TryParse(target, out intchoice))
                 {
-                    hostname = parts[0];
-                    port = Int32.Parse(parts[1]);
+                    if (servers[intchoice-1] != null)
+                    {
+                        Uri uri = new Uri(servers[intchoice-1]);
+                        hostname = uri.Host;
+                    }
+                    else
+                    {
+                        Console.WriteLine("You entered a number out of the list range, exiting ...");
+                        return;
+                    }
                 }
+                else 
+                {
+                    //Support both bare hostnames and ones with uri
+                    if (!target.Contains(Uri.SchemeDelimiter)) {
+                        target = string.Concat(Uri.UriSchemeHttp, Uri.SchemeDelimiter, target);
+                    }
+                    Uri uri = new Uri(target);
+                    hostname = uri.Host;
+                    port = uri.Port;
+                }
+
+                if (port == 0 || port == -1) {port = 5029;}
+
                 UdpClient udpClient = new UdpClient(port);
                 udpClient.Client.ReceiveTimeout = 10000;
                 Console.WriteLine();
@@ -458,7 +507,38 @@ namespace HyuuSeeker
                 Console.WriteLine();
                 Console.WriteLine("Downloaded all missing files. You can now close this window.");
             }
-            Console.ReadKey();
+
+            Console.WriteLine("\nNow launching SRB2Kart and connecting to " + hostname);
+            Console.WriteLine("Which renderer would you like to use? (Use Software if unsure)");
+            Console.WriteLine("\t1 :  Software (Default)");
+            Console.WriteLine("\t2 :  OpenGL");
+            Console.WriteLine("\t3 :  Cancel Launch");
+
+            string choice = Console.ReadLine();
+            string opengl = "";
+
+            if (Int32.TryParse(choice, out intchoice))
+            {
+                if (intchoice >= 3 || intchoice <= 0)
+                {
+                    Console.WriteLine("Cancelling launch ...");
+                    return;
+                }
+                else if (intchoice == 2)
+                {
+                    opengl = "-opengl";
+                }
+            }
+            else 
+            {
+                Console.WriteLine("Numbers allowed only ... exiting ...");
+                return;
+            }
+
+            ProcessStartInfo startinfo = new ProcessStartInfo();
+            startinfo.FileName = "srb2kart.exe";
+            startinfo.Arguments = "-connect " + hostname + " " + opengl;
+            Process.Start(startinfo);
         }
     }
 }
