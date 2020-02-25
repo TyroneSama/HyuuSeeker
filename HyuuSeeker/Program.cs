@@ -266,7 +266,19 @@ namespace HyuuSeeker
 
             List<string> servers = new List<string>();
             HtmlWeb web = new HtmlWeb();  
-            HtmlDocument document = web.Load("http://hyuu.cc");
+            HtmlDocument document;
+
+            try
+            {
+                document = web.Load("http://hyuu.cc");
+            } 
+            catch
+            {
+                Console.WriteLine("Couldn't connect to http://hyuu.cc");
+                Console.ReadKey();
+                return;
+            }
+
             HtmlNodeCollection nodes = document.DocumentNode.SelectNodes("//div[@class='hyuuseeker-enabled']/li");
 
             Console.WriteLine("Choose a hyuuseeker supported server to play on!\n");
@@ -326,6 +338,7 @@ namespace HyuuSeeker
                     else
                     {
                         Console.WriteLine("You entered a number out of the list range, exiting ...");
+                        Console.ReadKey();
                         return;
                     }
                 }
@@ -354,7 +367,7 @@ namespace HyuuSeeker
                     } catch
                     {
                         Console.WriteLine("Couldn't connect.");
-                        Console.ReadLine();
+                        Console.ReadKey();
                         return;
                     }
                     //Console.WriteLine("Connected.");
@@ -496,7 +509,10 @@ namespace HyuuSeeker
                 Console.WriteLine("Downloaded all available files, but some couldn't be retrieved:");
                 Console.WriteLine(String.Join(", ", failed.ToArray()));
                 Console.WriteLine("You can now close this window.");
-            } else
+                Console.ReadKey();
+                return;
+            } 
+            else
             {
                 Console.WriteLine("__     ______  _    _ _          _____      _____ ____   ____  _      ");
                 Console.WriteLine("\\ \\   / / __ \\| |  | ( )   /\\   |  __ \\    / ____/ __ \\ / __ \\| |     ");
@@ -505,40 +521,59 @@ namespace HyuuSeeker
                 Console.WriteLine("   | | | |__| | |__| |  / ____ \\| | \\ \\   | |___| |__| | |__| | |____ ");
                 Console.WriteLine("   |_|  \\____/ \\____/  /_/    \\_\\_|  \\_\\   \\_____\\____/ \\____/|______|");
                 Console.WriteLine();
-                Console.WriteLine("Downloaded all missing files. You can now close this window.");
             }
 
-            Console.WriteLine("\nNow launching SRB2Kart and connecting to " + hostname);
-            Console.WriteLine("Which renderer would you like to use? (Use Software if unsure)");
-            Console.WriteLine("\t1 :  Software (Default)");
-            Console.WriteLine("\t2 :  OpenGL");
-            Console.WriteLine("\t3 :  Cancel Launch");
 
-            string choice = Console.ReadLine();
-            string opengl = "";
-
-            if (Int32.TryParse(choice, out intchoice))
+            if (hostname != "")
             {
-                if (intchoice >= 3 || intchoice <= 0)
+                Console.WriteLine("\nNow launching SRB2Kart and connecting to " + hostname);
+                Console.WriteLine("Which renderer would you like to use? (Use Software if unsure)");
+                Console.WriteLine("\t1 :  Software (Default)");
+                Console.WriteLine("\t2 :  OpenGL");
+                Console.WriteLine("\t3 :  Cancel Launch");
+
+                string choice = Console.ReadLine();
+                string opengl = "";
+
+                if (Int32.TryParse(choice, out intchoice))
                 {
-                    Console.WriteLine("Cancelling launch ...");
+                    if (intchoice >= 3 || intchoice <= 0)
+                    {
+                        Console.WriteLine("Cancelling launch ...");
+                        Console.ReadKey();
+                        return;
+                    }
+                    else if (intchoice == 2)
+                    {
+                        opengl = "-opengl";
+                    }
+                }
+                else 
+                {
+                    Console.WriteLine("Numbers allowed only ... exiting ...");
+                    Console.ReadKey();
                     return;
                 }
-                else if (intchoice == 2)
+
+                ProcessStartInfo startinfo = new ProcessStartInfo();
+                startinfo.FileName = "srb2kart.exe";
+                startinfo.Arguments = "-connect " + hostname + " " + opengl;
+                try
                 {
-                    opengl = "-opengl";
+                    Process.Start(startinfo);
+                }
+                catch
+                {
+                    Console.WriteLine("Couldn't start " + startinfo.FileName + " " + startinfo.Arguments);
+                    Console.ReadKey();
                 }
             }
-            else 
+            else
             {
-                Console.WriteLine("Numbers allowed only ... exiting ...");
+                Console.WriteLine("Downloaded all missing files. You can now close this window.");
+                Console.ReadKey();
                 return;
             }
-
-            ProcessStartInfo startinfo = new ProcessStartInfo();
-            startinfo.FileName = "srb2kart.exe";
-            startinfo.Arguments = "-connect " + hostname + " " + opengl;
-            Process.Start(startinfo);
         }
     }
 }
