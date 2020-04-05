@@ -232,7 +232,7 @@ namespace HyuuSeeker
             }
 
             Console.WriteLine("Checking for updates...");
-            string version = "PRERELEASE HELLSCAPE 1";
+            string version = "PRERELEASE HELLSCAPE 2: CORERT DISASTER EDITION";
             string remote = new WebClient().DownloadString("https://hyuu.cc/version.txt");
             if (version != remote)
             {
@@ -259,10 +259,17 @@ namespace HyuuSeeker
             Console.WriteLine("");
 
             Console.WriteLine("Enter a hostname to fetch files for, or leave blank to read your log.txt.");
-            string target = Console.ReadLine();
+            string target;
+            if (args.Length == 0)
+            {
+                target = Console.ReadLine();
+            } else
+            {
+                target = args[0];
+            }
 
             List<string> targets = new List<string>();
-            if (target == "")
+            if (target == "" || target == "detect")
             {
                 Console.WriteLine("Parsing your log.txt for missing files...");
                 Regex regex = new Regex(@"^*\s\""(.+)\""\s(.+)\snot\sfound, md5:\s(.+)$");
